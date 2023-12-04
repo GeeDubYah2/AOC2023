@@ -91,7 +91,6 @@ def isGearComponent( part, lines, gears ):
     rowIdx       = part.rowIdx
     
     for row in range(rowIdx-1, rowIdx+2):
-        #print( 'scanning %s' % (lines[row][scanStartIdx:scanEndIdx] ) )
         for idx in range(scanStartIdx,scanEndIdx):
             c = lines[row][idx] if idx<len(lines[row]) else '.'
             if c == '*':
@@ -124,21 +123,19 @@ def parseInput( txt ):
     
     for part in parts:
         isGearComponent( part, lines, gears )
-        
-    #print( '---' + str(gears) )
-    #for g in gears:
-    #    print () 
-    #    print ( '--- ---' + str(gears[g].parts) )
-    #    print ( '--- ---' + str([str(p) for p in gears[g].parts]) )
-
+    
     accumulator = 0
     for g in gears:
-        if len( gears[g].parts ) == 2:
-    #        print ( '+++' + str(gears[g].parts) )
-    #        print ( '+++' + str([str(p) for p in gears[g].parts]) )            
+        if len( gears[g].parts ) == 2:          
             accumulator = accumulator + gears[g].parts[0].partNum * gears[g].parts[1].partNum
     
     return accumulator
+
+
+
+#######################################################################################################
+#######################################################################################################
+
     
 class TestDay3( unittest.TestCase ):
     
@@ -268,15 +265,33 @@ class TestDay3( unittest.TestCase ):
 
         part=parts[0]
         self.assertEqual( 123, part.partNum ) # is a gear component
-        self.assertTrue(  isGearComponent( part, lines, gears ) ) 
+        self.assertTrue(  isGearComponent( part, lines, gears ) ) # updates gears for all gears on part
         self.assertEqual( 1, len(part.gearLocns) )
         self.assertEqual( [(2,6)], part.gearLocns )
+
+        # check the gear at 2,6 has been added to gears and references back to parts[0]
+        self.assertIn( (2,6), gears )
+        self.assertEqual( 1, len(gears[(2,6)].parts) )
+        self.assertEqual( part, gears[(2,6)].parts[0] )
         
         part=parts[2]
         self.assertEqual( 456, part.partNum ) # is a gear component
-        self.assertTrue(  isGearComponent( part, lines, gears ) )         
+        self.assertTrue(  isGearComponent( part, lines, gears ) ) # updates gears for all gears on part      
         self.assertEqual( 3, len(part.gearLocns) )
         self.assertEqual( [(2,6),(4,6),(4,9)], part.gearLocns )      
+
+        # check the gear at 2,6 has been updated with the new part - parts[1]
+        self.assertEqual( 2, len(gears[(2,6)].parts) )
+        self.assertEqual( parts[0], gears[(2,6)].parts[0] )
+        self.assertEqual( parts[2], gears[(2,6)].parts[1] )
+
+        # the follow gears should have been added too.
+        self.assertIn( (4,6), gears )
+        self.assertIn( (4,9), gears )
+        
+        # note: parts[1] "56" isnt included as we havent called isGearComponent on it
+        # likewise parts[3] "22"
+
         
 
     def test_calcPartsTotal( self ):
@@ -300,7 +315,7 @@ class TestDay3( unittest.TestCase ):
 ......456
 ...22*..*
 '''
-        self.assertEqual( 10032, parseInput( TEST_INPUT ) )
+        self.assertEqual( 456*22, parseInput( TEST_INPUT ) )
         
         self.assertEqual( 467835, parseInput( INPUT ) )
         
