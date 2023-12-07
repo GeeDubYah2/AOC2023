@@ -41,54 +41,73 @@ def getSeeds( lines ):
             return nums
 
 def getSeedsV2( lines ):
-    seeds = []
+    seeds = [] # list of ValueRanges
     nums = getSeeds( lines )
     for idx in range( 0, len(nums), 2 ):
         start  = nums[idx]
         length = nums[idx+1]
-        print( 'getSeedsV2: Processing %d of %d.' % (idx, len(nums)) )
-        seeds = seeds + list( range(start, start+length) )
+        seeds.append( ValueRange( start, start+length ) )
     return seeds
 
 
-class MappingEntry:
+class ValueRange:
+    def __init__(self, start, end):
+        self.start = start
+        self.end   = end
+        self.range = end - start
+
+    def __lt__(self, other):
+        return self.start < other.start
+
+    def __eq__(self,other):
+        return ((self.start, self.end)
+                == (other.start, other.end) )
+
+    def __str__(self):
+        return ('ValueRange: start %d, end %d, range %d' %
+                (self.start,
+                 self.end,
+                 self.range ))
+
+class MappingEntry( ValueRange ):
     ''' Represents one row of a map - e.g.
         soil-to-fertilizer map:
         0 15 37
          ---> MappingEntry( 15, 15+37-1, -15 )
     '''
-    def __init__(self, sourceStart, sourceEnd, mapOp):
-        self.sourceStart = sourceStart
-        self.sourceEnd   = sourceEnd
-        self.mapOp       = mapOp
+    def __init__(self, start, end, mapOp, gapFiller=False):
+        super(MappingEntry, self).__init__(start,end)
+        self.mapOp = mapOp
+        self.gapFiller = gapFiller
 
     @classmethod
     def createMappingEntry( cls, line ):
         mappings = getNumbers( line )
-        (destStart, sourceStart, rangeLength) = tuple( mappings )
-        mapping = MappingEntry( sourceStart, sourceStart+rangeLength-1, destStart-sourceStart )
+        (destStart, start, rangeLength) = tuple( mappings )
+        mapping = MappingEntry( start, start+rangeLength-1, destStart-start )
         return mapping
 
     def applyMapping(self, sourceValue):
-        if self.sourceStart <= sourceValue <= self.sourceEnd:
+        if self.start <= sourceValue <= self.end:
             return sourceValue + self.mapOp
         else:
             return -1
 
     def __str__(self):
-        return ('MappingEntry: source start %d, end %d, dest start: %d, mapOp %s%d' %
-                (self.sourceStart,
-                 self.sourceEnd,
-                 self.sourceStart + self.mapOp,
+        return ('MappingEntry: source start %d, end %d, dest start: %d, mapOp %s%d %s' %
+                (self.start,
+                 self.end,
+                 self.start + self.mapOp,
                  '+' if self.mapOp > 0 else '',
-                 self.mapOp))
+                 self.mapOp,
+                 ' GAP FILLER' if self.gapFiller else ''
+                 ))
 
     def __eq__(self,other):
-        return ((self.sourceStart, self.sourceEnd, self.mapOp)
-                == (other.sourceStart, other.sourceEnd, other.mapOp))
+        return ((self.start, self.end, self.mapOp)
+                == (other.start, other.end, other.mapOp))
 
-    def __lt__(self, other):
-        return self.sourceStart < other.sourceStart
+
 
 def getMap(mapType, lines):
     mapEnts = []
@@ -101,7 +120,17 @@ def getMap(mapType, lines):
                 idx = idx + 1
         else:
             idx=idx+1
-    return {mapType:mapEnts}
+
+    # Now fill in any gaps with a mapping with mapOp of +0 (no change).
+    mapEnts == sorted(mapEnts)
+    contiguousMappings = []
+    for idx in range(0, len(mapEnts)):
+        contiguousMappings.append( mapEnts[idx] )
+        if idx+1 <= len(mapEnts)-1:
+            if mapEnts[idx].end+1 < mapEnts[idx+1].start:
+                contiguousMappings.append( MappingEntry( mapEnts[idx].end+1, mapEnts[idx+1].start-1, 0, gapFiller=True ) )
+
+    return {mapType:contiguousMappings}
 
 def getAllMappings( lines ):
     allMappings = {}
@@ -110,16 +139,33 @@ def getAllMappings( lines ):
 
     return allMappings
 
-def performMapping( sourceVal, mapType, allMappings ):
-    for mapEntry in sorted( allMappings[mapType] ):
-        destVal = mapEntry.applyMapping(sourceVal)
-        if destVal != -1:
-            # mapping found. return the destVal.
-            return destVal
-        # else - continue looking for a mapping for sourceVal
+def performMapping( sourceRanges, mapType, allMappings ):
+    mappings   = sorted(allMappings[mapType])
+    destRanges = []
 
-    # no mappings found. just return sourceVal.
-    return sourceVal
+    for sr in sourceRanges:
+        for me in mappings:
+            if sr.start < me.start:
+                destRanges.append( ValueRange( sr.start, me.start-1 ) )
+            elif sr.start >= me.start and sr.start <= me.end:
+                destRanges.append( ValueRange( me.start+me.mapOp, min(sr.end,me.end)+me.mapOp ) )
+            elif sr.end <= me.start:
+                # no more mappings to process
+                break
+
+
+
+
+
+    # for mapEntry in sorted( allMappings[mapType] ):
+    #     destVal = mapEntry.applyMapping(sourceVal)
+    #     if destVal != -1:
+    #         # mapping found. return the destVal.
+    #         return destVal
+    #     # else - continue looking for a mapping for sourceVal
+    #
+    # # no mappings found. just return sourceVal.
+    # return sourceVal
 
 def getSrcName( mt ):
     '''
@@ -173,12 +219,16 @@ class TestDay5_1 (unittest.TestCase):
         self.assertEqual( getSeeds(lines), [79, 14, 55, 13] )
 
     def test_getSeedsV2(self):
+        vr1 = ValueRange(20, 30)
+        vr2 = ValueRange(20, 30)
+        self.assertEqual(vr1, vr2)
+
         lines = [ 'seeds: 20 10 40 20' ]
-        expected = list( range(20, 30) ) + list( range(40, 60) )
+        expected = [ ValueRange(20, 30), ValueRange(40, 60) ]
         self.assertEqual(getSeedsV2(lines), expected)
 
         lines = readLines(EXAMPLE_INPUT)
-        expected = list( range(79, 79+14) ) + list( range(55, 55+13) )
+        expected = [ ValueRange(79, 79+14), ValueRange(55, 55+13) ]
         self.assertEqual( getSeedsV2(lines), expected )
 
     def test_getMap_1(self):
@@ -203,13 +253,35 @@ humidity-to-location map:
 60 56 37
 56 93 4
         '''
+
         lines = readLines(TXT)
         maap = getMap('humidity-to-location', lines)
+        print( '\n'.join([str(m) for m in maap['humidity-to-location'] ]) )
+
         self.assertIn('humidity-to-location',maap)
         self.assertEqual(2, len(maap['humidity-to-location']))
-        print( [str(m) for m in maap['humidity-to-location'] ] )
         self.assertEqual(MappingEntry(56,92,4), maap['humidity-to-location'][0])
         self.assertEqual(MappingEntry(93,96,-37), maap['humidity-to-location'][1])
+
+
+    def test_getMap_3(self):
+        # this will have gaps in the mappings. need some filler.
+        TXT = '''      
+humidity-to-location map:
+200 100 100
+400 300 100
+        '''
+
+        lines = readLines(TXT)
+        maap = getMap('humidity-to-location', lines)
+        print('\n'.join([str(m) for m in maap['humidity-to-location']]))
+
+        self.assertIn('humidity-to-location', maap)
+        self.assertEqual(3, len(maap['humidity-to-location']))
+        self.assertEqual(MappingEntry(100, 199, 100), maap['humidity-to-location'][0], 'Actual: ' + str(maap['humidity-to-location'][0]) )
+        self.assertEqual(MappingEntry(200, 299, 0),   maap['humidity-to-location'][1], 'Actual: ' + str(maap['humidity-to-location'][1]) )
+        self.assertTrue( maap['humidity-to-location'][1].gapFiller )
+        self.assertEqual(MappingEntry(300, 399, 100), maap['humidity-to-location'][2], 'Actual: ' + str(maap['humidity-to-location'][2]) )
 
     def test_getAllMappings(self):
         lines = readLines(EXAMPLE_INPUT)
@@ -227,6 +299,7 @@ humidity-to-location map:
         self.assertEqual(MappingEntry(56,92,4), allMappings['humidity-to-location'][0])
         self.assertEqual(MappingEntry(93,96,-37), allMappings['humidity-to-location'][1])
 
+    @unittest.skip
     def test_performMappings(self):
         lines = readLines(EXAMPLE_INPUT)
         allMappings = getAllMappings( lines )
@@ -248,6 +321,7 @@ humidity-to-location map:
         self.assertEqual( 92+4,  performMapping( 92, 'humidity-to-location', allMappings ) ) # apply +4 mapping
         self.assertEqual( 93-37, performMapping( 93, 'humidity-to-location', allMappings ) ) # apply -37 mapping
 
+    @unittest.skip
     def test_performAllMappings(self):
         lines       = readLines(EXAMPLE_INPUT)
         allMappings = getAllMappings( lines )
@@ -262,23 +336,17 @@ humidity-to-location map:
         self.assertEqual( performAllMappings(13, allMappings),
             (35, 'Seed 13, soil 13, fertilizer 52, water 41, light 34, temperature 34, humidity 35, location 35.') )
 
+    @unittest.skip
     def test_run(self):
         self.assertEqual( 46, run( EXAMPLE_INPUT ) )
 
+    @unittest.skip
     def test_run_theBigOne(self):
         # BRUTE FORCING AIN'T GOING TO WORK
         # self.assertEqual( 1, run( PUZZLE_INPUT ) )  # <<<<<<<< THE ANSWER IS HERE <<<<<<<<
         #                 ^^^^^^^^^
         pass
 
-    def test_run_smartForcingIt( self ):
-        lines       = readLines(PUZZLE_INPUT)
-        allMappings = getAllMappings( lines )
-
-        htlMaps = allMappings['humidity-to-location']
-        print( '\n'.join( [str(me) for me in htlMaps] ) )
-
-        print( [ me.sourceStart + me.mapOp for me in htlMaps ] )
 
 
 if __name__ == '__main__':
