@@ -111,7 +111,7 @@ class TestDay5_1 (unittest.TestCase):
     def test_playGame( self ):
         self.assertEqual( 6440, playGame( EXAMPLE_INPUT ) )
 
-        self.assertEqual(253910319, playGame(PUZZLE_INPUT))
+        self.assertEqual(253910319, playGame(PUZZLE_INPUT)) ### THE ANSWER ###
 
 if __name__ == '__main__':
     unittest.main()
