@@ -2,87 +2,98 @@ import unittest
 
 from   dataset import EXAMPLE_INPUT, PUZZLE_INPUT
 from   enum import Enum
-
+import logging
 
 '''
-0 3 6 9 12 15
-1 3 6 10 15 21
-10 13 16 21 30 45
+RL
+
+AAA = (BBB, CCC)
+BBB = (DDD, EEE)
+CCC = (ZZZ, GGG)
+DDD = (DDD, DDD)
+EEE = (EEE, EEE)
+GGG = (GGG, GGG)
+ZZZ = (ZZZ, ZZZ)
 '''
 
 def readLines( txt ):
     return [ l for l in txt.split('\n') if len(l) > 0 ]
 
-def strToInt( txt ):
-    ''' converts txt to a decimal value. ignores everything thats not a digit
-        'Game 51:' --> 51
-    '''
-    digits = [c for c in txt if c.isdigit() or c=='-' ]
-    value  = int(''.join(digits))
-    return value
+def getDirections( line ):
+    assert( line.count('L') + line.count('R') == len(line) )
+    return line
 
-def getValues( line ):
-    while '  ' in line :
-        line = line.replace('  ',' ')
-    words = line.split(' ')
-    numbers = [ strToInt(word) for word in words ]
-    return numbers
+def readNode( line ):
+    nodeKey   = line.split('=')[0].replace(' ','')
+    nodeLeft  = line.split('=')[1].split(',')[0].replace('(','').replace(' ','')
+    nodeRight = line.split('=')[1].split(',')[1].replace(')', '').replace(' ', '')
+    return nodeKey, (nodeLeft, nodeRight)
 
-def getDifferences( numbers ):
-    diffs = []
-    for idx in range( 0, len(numbers) ):
-        if idx+1 < len(numbers):
-            diffs.append( numbers[idx+1]-numbers[idx] )
-    return diffs
-
-def allZero( numbers ):
-    return all( [i==0 for i in numbers] )
-
-def calcDiffsRecursively( numbers, allDiffs ):
-    diffs = getDifferences( numbers )
-    if not allZero( diffs ):
-        calcDiffsRecursively( diffs, allDiffs )
-        allDiffs.append(diffs)
-    return allDiffs
-
-def processLine( line ):
-    numbers    = getValues( line )
-    allNumbers = []
-    allNumbers =  calcDiffsRecursively( numbers, allNumbers )
-    allNumbers.append( numbers )
-    return allNumbers
-
-def predictNextValue( allNumbers ):
-    prevDiff=0
-    for numList in allNumbers:
-        newValue = numList[-1]+prevDiff
-        numList.append(newValue)
-        prevDiff = newValue
-    return newValue
-
-def predictPreviousValue( allNumbers ):
-    prevDiff=0
-    for numList in allNumbers:
-        newValue = numList[0]-prevDiff
-        numList = [newValue] + numList
-        prevDiff = newValue
-    return newValue
-
-class DIRECTION(Enum):
-    FORWARD  = 1
-    BACKWARD = 2
-
-    @classmethod
-    def getPredictFunction( cls, direction ):
-        return predictNextValue if direction==cls.FORWARD else predictPreviousValue
-
-def run( txt, direction ):
-    lines = readLines( txt )
-    total = 0
-    predictFunc = DIRECTION.getPredictFunction( direction )
+def readNodes( lines ):
+    nodes = {}
     for line in lines:
-        allNumbers = processLine( line )
-        value      = predictFunc( allNumbers )
-        total      = total + value
-    return total
+        if '=' in line:
+            nodes.setdefault( *readNode(line) )
+    return nodes
 
+def followDirections( nodes, directions ):
+    locn  = 'AAA'
+    steps = 0
+    while locn!='ZZZ':
+        nextNodes = nodes[locn]
+        locn      = nextNodes[0] if directions[ steps % len(directions) ] == 'L' else nextNodes[1]
+        steps     = steps + 1
+    return steps
+
+def followGhostDirections( startLocn, endLocns, nodes, directions, maxSteps=10000 ):
+    locn  = startLocn
+    steps = 0
+
+    while steps < maxSteps:
+        nextNodes = nodes[locn]
+        locn      = nextNodes[0] if directions[ steps % len(directions) ] == 'L' else nextNodes[1]
+
+        steps     = steps + 1
+        if locn[-1]=='Z':
+            endLocns.add( steps )
+
+        if locn==startLocn:
+            break
+    return locn
+
+def runPart1( txt ):
+    lines      = readLines(txt)
+    directions = getDirections( lines[0] )
+    nodes      = readNodes( lines[1:] )
+    steps      = followDirections( nodes, directions  )
+    return steps
+
+def runPart2( txt ):
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+
+    lines      = readLines(txt)
+    directions = getDirections( lines[0] )
+    nodes      = readNodes( lines[1:] )
+
+    startingNodes = [ n for n in nodes if n[-1]=='A' ]
+    endLocnsDict  = {} # dict of startLocn to endLocns
+    for locn in startingNodes:
+        endLocns = set()
+        endLocnsDict[locn] = endLocns
+
+        logging.info( 'Calling followGhostDirection: %s', locn )
+        followGhostDirections( locn, endLocns, nodes, directions, 100000000 )
+        logging.info('endLocns for %s: length: %d', locn, len(endLocns) )
+
+    locn =  startingNodes.pop()
+    combinedEndLocns = endLocnsDict[ locn ]
+
+    while startingNodes:
+        locn = startingNodes.pop()
+        logging.info('Calculating intersection for: %s', locn)
+        combinedEndLocns.intersection_update( endLocnsDict[ locn ] )
+    return sorted( combinedEndLocns )[0]
+
+    #
+    # for locn in endLocnsDict:
+    #     for s in endLocnsDict[locn]:
