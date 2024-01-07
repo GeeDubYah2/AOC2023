@@ -1,7 +1,7 @@
 import unittest
 
 from dataset import EXAMPLE_INPUT, PUZZLE_INPUT
-from day9_2  import *
+from day9_1_2  import *
 
 
 class TestDay9 (unittest.TestCase):
