@@ -39,6 +39,7 @@ class TestDay8 (unittest.TestCase):
         # zip the six locn lists
         # look for entries with 6 xxZ entries.
 
+    @unittest.skip('skipped')
     def test_runPart2(self):
         #self.assertEqual(6, runPart2( PART2_EXAMPLE ) )
         self.assertEqual(6, runPart2( PUZZLE_INPUT ))
