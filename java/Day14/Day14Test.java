@@ -1,8 +1,6 @@
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
-//import java.util.ArrayList;
-
 public class Day14Test {
 
     @Test
@@ -15,6 +13,7 @@ public class Day14Test {
     @Test
     public void testRunPart2() {
         // Part2 test
+        // Disabled as this test runs v. v. slowly.
         //assertEquals( Day14.run( TestData.SMALL_MAP, true, 1000000000 ), 64 );
     }
 

@@ -3,20 +3,6 @@ import java.util.ArrayList;
 
 public class Day14
 {
-    // private static String INPUT = 
-    //     """
-    //     O....#....
-    //     O.OO#....#
-    //     .....##...
-    //     OO.#O....O
-    //     .O.....O#.
-    //     O.#..O.#.#
-    //     ..O..#O..O
-    //     .......O..
-    //     #....###..
-    //     #OO..#....
-    //     """;
-
     private static ArrayList< ArrayList< Character > > rocks;
 
     /**
@@ -49,7 +35,6 @@ public class Day14
                 rollEast( );
             }   
         }   
-        //printRocks( );
         int weight = calculateTotalWeight( );
         return weight;
     }
@@ -234,13 +219,6 @@ public class Day14
             }
         }        
    }
-
-   // 012345
-   // .#..O.
-   // col=4
-   // c=3 .
-   // c=2 .
-   // c=1 #
 
    public static void rollRockWest( int row, int col ) // W <-
    {
