@@ -45,9 +45,7 @@ def parseGameResults( resultsStr ):
             ''' e.g. 3 blue '''
             count  = strToInt(c)
             colour = getColour(c)
-            
             rgbMaximums[colour]=max(rgbMaximums[colour],count)
-                
     return rgbMaximums
 
 def isGameValid( rgbMaximums ):
@@ -58,6 +56,10 @@ def calculateGamePower( rgbMaximums ):
     return rgbMaximums['red'] * rgbMaximums['green'] * rgbMaximums['blue']
 
 def parseGameResultsLine( line ):
+    """
+    :param line: parses the game results line - e.g. "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"
+    :return: game ID
+    """
     if line and 'Game' in line:
         gameIDStr   = line.split(':')[0]
         gameId      = parseGameId(gameIDStr)
@@ -69,6 +71,10 @@ def parseGameResultsLine( line ):
     return 0,0
 
 def parseGameData( data ):
+    """
+    :param data: Processes the entire game results data. Multiple lines
+    :return: the puzzle answer.
+    """
     validGamesAccumulator=0
     powerAccumulator=0
     for line in data.split('\n'):
