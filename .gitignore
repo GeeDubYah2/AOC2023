@@ -6,3 +6,5 @@ java/Day14/lib/junit-4.13.2.jar
 java/Day15/.vscode/settings.json
 java/Day15/lib/hamcrest-core-1.3.jar
 java/Day15/lib/junit-4.13.2.jar
+.idea
+__pycache__

@@ -1,3 +1,6 @@
+"""
+The worked example given on the AOC2023 Day5 page.
+"""
 EXAMPLE_INPUT = '''
 seeds: 79 14 55 13
 
@@ -34,6 +37,9 @@ humidity-to-location map:
 56 93 4
 '''
 
+"""
+The full puzzle input that we need to process. Same format as above - but much, much more values (and bigger). 
+"""
 PUZZLE_INPUT = '''
 seeds: 950527520 85181200 546703948 123777711 63627802 279111951 1141059215 246466925 1655973293 98210926 3948361820 92804510 2424412143 247735408 4140139679 82572647 2009732824 325159757 3575518161 370114248
 
