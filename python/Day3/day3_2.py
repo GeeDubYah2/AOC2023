@@ -1,35 +1,32 @@
 import functools
 import unittest
+from   dataset   import TEST_INPUT, FULL_INPUT
 
-INPUT = '''
-467..114..
-...*......
-..35..633.
-......#...
-617*......
-.....+.58.
-..592.....
-......755.
-...$.*....
-.664.598..
-'''
 
 def readLines( txt ):
+    """
+    Parse txt and split into separate lines.
+    Add spaces to start and end of each line to avoid index errors later.
+    :param txt: the test input
+    :return:    [ string ] containing lines
+    """
     lines = []
     for line in txt.split('\n'):
         lines.append(' ' + line + ' ')
     return lines
 
 def strToInt( txt ):
-    ''' converts txt to a decimal value. ignores everything thats not a digit 
+    """ converts txt to a decimal value. ignores everything thats not a digit
         'Game 51:' --> 51
-    '''
+    """
     digits = [c for c in txt if c.isdigit() ]
-    id=int(''.join(digits))
-    return id    
+    value=int(''.join(digits))
+    return value
     
 class Part(object):
-
+    """
+    Represents a Part. Contains the part number, the row and start/end indexes.
+    """
     def __init__( self, row, start ):
         self.partNum   = 0
         self.rowIdx    = row
@@ -38,27 +35,45 @@ class Part(object):
         self.gearLocns = []
         
     def setPartNum( self, partNumStr, endIdx ):
+        """
+        Stores details of the part number. Part number is read from a string.
+        :param partNumStr:
+        :param endIdx:
+        """
         self.partNum = strToInt( partNumStr )
         self.endIdx  = endIdx
         
     def addGearLocn( self, row, idx ):
+        """ Add the location of an adjacent gear symbol ("*").
+        """
         self.gearLocns.append( (row,idx) )
         
     def __str__( self ):
+        """ Returns a string representation of this part """
         retval = 'Part: %d From line: %d [%d:%d]' % ( self.partNum, self.rowIdx, self.startIdx, self.endIdx)
         return retval
         
 class Gear(object):
     def __init__( self, locn ):
-        ''' locn - tuple containing rowIdx,colIdx '''
+        """ locn - tuple containing (rowIdx,colIdx) """
         self.locn  = locn
         self.parts = []
         
-    def addPart( self, p ):
-        self.parts.append( p )
+    def addPart( self, part ):
+        """ Add a part to this gear.
+        """
+        self.parts.append( part )
         
     
 def getPart( line, rowIdx, startIdx ):
+    """
+    Given a row and start position - returns the Part
+    :param line:        string containing the current line
+    :param rowIdx:      index of the current line
+    :param startIdx:    start location on this line.
+    :return:            (Part, index one position after the end of this part)
+    """
+    p = None
     i = startIdx
     while i < len(line):
         if line[i].isdigit():
@@ -74,6 +89,11 @@ def getPart( line, rowIdx, startIdx ):
     return p,i
     
 def findParts( lines ):
+    """
+    Scan the lines and find all the Parts.
+    :param lines: list of strings representing each line in test input
+    :return:      list of all parts.
+    """
     parts=[]
     for rowIdx in range( 0, len(lines) ):
         line = lines[rowIdx]
@@ -86,15 +106,29 @@ def findParts( lines ):
     return parts
     
 def isGearComponent( part, lines, gears ):
+    """
+    isLegitPart - Is this Part a component in a gear? To be a gear it must be adjacent to a "*" that is
+                  adjacent to another Part. If it is a gear component append the Gear to "gears".
+    :param part:  Part to be checked.
+    :param lines: list of lines
+    :param gears: list of gears - updated in place
+    :return:      boolean True / False
+    """
     scanStartIdx = part.startIdx-1
     scanEndIdx   = part.endIdx+1
     rowIdx       = part.rowIdx
-    
+
+    # Check one row above & below; and one column left & right of this part.
     for row in range(rowIdx-1, rowIdx+2):
         for idx in range(scanStartIdx,scanEndIdx):
+
+            # Search for gear symobls - "*".
             c = lines[row][idx] if idx<len(lines[row]) else '.'
             if c == '*':
+                # Add Gear to Part
                 part.addGearLocn(row,idx)
+
+                # Add the new Gear to "gears" if not there already.
                 if (row,idx) in gears:
                     gear = gears[(row,idx)]
                 else:
@@ -105,28 +139,39 @@ def isGearComponent( part, lines, gears ):
     return bool(part.gearLocns)
 
 def addParts( x, y ):
+    """ used by reduce function to sum all part values
+        will add x + y - where x & y can be a part, or integer value (sum of other parts).
+    :param x: part or an integer value to be summed
+    :param y: part or an integer value to be summed
+    :return:  summed part values.
+    """
     val1 = x if isinstance(x,int) else x.partNum
     val2 = y if isinstance(y,int) else y.partNum
     return val1 + val2
 
-def calcPartsTotal( parts ):
-    if not parts:
-        return 0
-    elif len(parts)==1:
-        return parts[0].partNum
-    return functools.reduce( addParts, parts )
-
 def parseInput( txt ):
+    """
+    Parse the test input. Read the lines. Find parts that are components in a gear. Then
+    calculate the total gear ratio for all gears.
+
+    :param txt: Test input
+    :return:    The total gear ratio.
+    """
     lines      = readLines( txt )
     parts      = findParts( lines )
     gears      = {} # dictionary of (rowIdx,colIdx):Gear
     
     for part in parts:
         isGearComponent( part, lines, gears )
-    
+
+    # Calculate the total gear ratio for all gears containing two parts.
     accumulator = 0
     for g in gears:
-        if len( gears[g].parts ) == 2:          
+
+        # Does the gear have two parts?
+        if len( gears[g].parts ) == 2:
+
+            # Yes, gear ratio is part1 * part2.
             accumulator = accumulator + gears[g].parts[0].partNum * gears[g].parts[1].partNum
     
     return accumulator
@@ -140,11 +185,14 @@ def parseInput( txt ):
 class TestDay3( unittest.TestCase ):
     
     def test_readLines(self):
-        self.assertIn( ' 467..114.. ', readLines(INPUT) )
-        self.assertEqual( ' 467..114.. ', readLines(INPUT)[1] )
-        self.assertEqual( 12, len(readLines(INPUT)) )
+        # Test the readLines function on the TEST_INPUT
+        self.assertIn( ' 467..114.. ', readLines(TEST_INPUT))
+        self.assertEqual( ' 467..114.. ', readLines(TEST_INPUT)[1])
+        self.assertEqual(12, len(readLines(TEST_INPUT)))
 
     def test_strToInt(self):
+        # Test the strToInt function
+        # various combinations of characters (which are ignored) and digits.
         self.assertEqual( 1, strToInt('Game 1'))
         self.assertEqual( 1, strToInt('Game 1:'))
         self.assertEqual( 1, strToInt('1'))
@@ -153,6 +201,7 @@ class TestDay3( unittest.TestCase ):
         self.assertEqual( 123, strToInt('1a2b3c '))
         
     def test_Part(self):
+        # Test the Part constructor.
         p = Part( 1, 5 )
         self.assertEqual( 1,   p.rowIdx )
         self.assertEqual( 5,   p.startIdx )
@@ -161,10 +210,11 @@ class TestDay3( unittest.TestCase ):
         self.assertEqual( 7,   p.endIdx )
         
     def test_getPart( self ):
-        # def getPart( line, rowIdx, startIdx ):
+        # Test the getPart function. It should find two parts on this line: 467 & 114.
         line     = ' 467..114.. '
         rowIdx   = 5
         startIdx = 1
+        # Get the first part 467
         p,i = getPart( line, rowIdx, startIdx )
   
         self.assertEqual( 5,   p.rowIdx )
@@ -175,7 +225,8 @@ class TestDay3( unittest.TestCase ):
         self.assertEqual( '467', line[p.startIdx:p.endIdx] )
         self.assertEqual( '.', line[i] ) # character after the part number
         self.assertEqual( 'Part: 467 From line: 5 [1:4]', str(p) )
-        
+
+        # Continue on to get the second part 114
         startIdx = 6
         p,i = getPart( line, rowIdx, startIdx )
   
@@ -187,9 +238,11 @@ class TestDay3( unittest.TestCase ):
         self.assertEqual( '114', line[p.startIdx:p.endIdx] )
         self.assertEqual( '.', line[i] ) # character after the part number      
         self.assertEqual( 'Part: 114 From line: 5 [6:9]', str(p) )
-    
+
     def test_findParts( self ):
-        lines = readLines(INPUT)
+        # Call findParts on the TEST_INPUT, and check that some
+        # of the expected parts are found.
+        lines = readLines(TEST_INPUT)
         parts = findParts(lines)
         
         partsAsString = '\n'.join( [str(part) for part in parts] )
@@ -198,7 +251,8 @@ class TestDay3( unittest.TestCase ):
         self.assertIn( 'Part: 598 From line: 10 [6:9]', partsAsString )
         
     def test_isGearComponent( self ):
-        lines = readLines(INPUT)
+        # Test isGearComponent. A gear is two parts separated by a "*".
+        lines = readLines(TEST_INPUT)
         parts = findParts(lines)  
         gears = {}
         
@@ -228,13 +282,15 @@ class TestDay3( unittest.TestCase ):
         self.assertTrue(  isGearComponent( parts[-1], lines, gears ) )        
         
     def test_isGearComponent_test2( self ):
-        TEST_INPUT = '''
+
+        # Small test input. Contains one gear consisting of parts 123 and 456.
+        SMALL_TEST_INPUT = """
 ..123....
 .*...*...
 ......456
 .........
-'''
-        lines = readLines(TEST_INPUT)
+"""
+        lines = readLines(SMALL_TEST_INPUT)
         parts = findParts(lines) 
         gears = {}
         self.assertEqual( 2, len(parts) ) 
@@ -250,13 +306,13 @@ class TestDay3( unittest.TestCase ):
         self.assertEqual( [(2,6)], parts[1].gearLocns )
         
     def test_isGearComponent_test3( self ):
-        TEST_INPUT = '''
+        SMALL_TEST_INPUT = """
 ..123.56.
 .....*...
 ......456
 ...22*..*
-'''
-        lines = readLines(TEST_INPUT)
+"""
+        lines = readLines(SMALL_TEST_INPUT)
         parts = findParts(lines)  
         
         self.assertEqual( 4, len(parts) ) 
@@ -289,40 +345,25 @@ class TestDay3( unittest.TestCase ):
         self.assertIn( (4,6), gears )
         self.assertIn( (4,9), gears )
         
-        # note: parts[1] "56" isnt included as we havent called isGearComponent on it
+        # note: parts[1] "56" isn't included as we haven't called isGearComponent on it
         # likewise parts[3] "22"
-
-        
-
-    def test_calcPartsTotal( self ):
-        p1 = Part(0,0)
-        p1.partNum = 111
-        
-        p2 = Part(0,0)
-        p2.partNum = 222
-        
-        self.assertEqual( 0,   calcPartsTotal( [] ) )
-        self.assertEqual( 0,   calcPartsTotal( None ) )
-        self.assertEqual( 111, calcPartsTotal( [p1] ) )
-        self.assertEqual( 444, calcPartsTotal( [p1,p2,p1] ) )
-        self.assertEqual( 333, calcPartsTotal( [p1,p2] ) )
-        self.assertEqual( 222, calcPartsTotal( [p1,p1] ) )
     
     def test_parseInput( self ):
-        TEST_INPUT = '''
-..123.56.
-.....*...
-......456
-...22*..*
-'''
-        self.assertEqual( 456*22, parseInput( TEST_INPUT ) )
-        
-        self.assertEqual( 467835, parseInput( INPUT ) )
-        
-        from dataset_3_1 import INPUT_3_1
-        self.assertEqual( 74528807, parseInput( INPUT_3_1 ) ) # <<<<< THE ANSWER IS HERE <<<<<
+        # Test the top level function.
+
+        # Small example containing two parts 456 and 22.
+        SMALL_TEST_INPUT = """
+        ..123.56.
+        .....*...
+        ......456
+        ...22*..*
+        """
+        self.assertEqual( 456*22, parseInput( SMALL_TEST_INPUT ) )
+
+        # Using the test input
+        self.assertEqual(467835, parseInput(TEST_INPUT))
+        # Using the actual input data for part two.
+        self.assertEqual(74528807, parseInput(FULL_INPUT)) # <<<<< THE ANSWER IS HERE <<<<<
 
 if __name__ == '__main__':
-
     unittest.main()
-    
