@@ -1,7 +1,7 @@
 import unittest
 
 from dataset import *
-from day8_1_2 import *
+from day8 import *
 
 
 class TestDay8 (unittest.TestCase):

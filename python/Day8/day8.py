@@ -1,8 +1,7 @@
 import logging
 import unittest
-
 from   dataset import EXAMPLE_INPUT, PUZZLE_INPUT
-from   enum import Enum
+
 
 '''
 RL
@@ -23,12 +22,12 @@ Part 1:
  - distance to ZZZ is two -> return
 '''
 
-def readLines( txt : str ):
+def readLines( txt : str ) -> list[str]:
     """ split txt into lines. ignore blank lines. return as list[str]
     """
     return [ l for l in txt.split('\n') if len(l) > 0 ]
 
-def getDirections( line : str ):
+def getDirections( line : str ) -> str:
     """ returns the RL instructions on line
     """
     assert( line.count('L') + line.count('R') == len(line) )
@@ -63,7 +62,7 @@ def readNodes( lines : list[str] ) -> dict [ str : tuple[str:str] ]:
             nodes.setdefault( *readNode(line) )
     return nodes
 
-def followDirections( nodes : dict [ str : tuple[str:str] ], directions : str ):
+def followDirections( nodes : dict [ str : tuple[str:str] ], directions : str ) -> int:
     """ Starting at "AAA" follow the RL directions until we reach "ZZZ". Count the steps.
         :return int : step count
     """
@@ -75,28 +74,7 @@ def followDirections( nodes : dict [ str : tuple[str:str] ], directions : str ):
         steps     = steps + 1
     return steps
 
-def followGhostDirections( startLocn, endLocns, nodes, directions, maxSteps=100 ):
-    """ Part2 function
-
-        For startLocn, find all the possible endLocns. That's any nodes ending in "Z".
-    """
-    locn  = startLocn
-    steps = 0
-
-    while steps < maxSteps:
-        nextNodes = nodes[locn]
-        locn      = nextNodes[0] if directions[ steps % len(directions) ] == 'L' else nextNodes[1]
-
-        steps     = steps + 1
-        if locn[-1]=='Z':
-            logging.info( 'locn: %s direction: %s' % (locn, directions[ steps % len(directions) ] ) )
-            endLocns.add( steps )
-
-        if locn==startLocn:
-            break
-    return locn
-
-def runPart1( txt ):
+def runPart1( txt : str ) -> int:
     lines      = readLines(txt)
     directions = getDirections( lines[0] )
     nodes      = readNodes( lines[1:] )
