@@ -1,4 +1,4 @@
-EXAMPLE_INPUT = '''
+PART1A_EXAMPLE = '''
 RL
 
 AAA = (BBB, CCC)
@@ -10,7 +10,7 @@ GGG = (GGG, GGG)
 ZZZ = (ZZZ, ZZZ)
 '''
 
-EXAMPLE_2_INPUT = '''
+PART1B_EXAMPLE = '''
 LLR
 
 AAA = (BBB, BBB)
