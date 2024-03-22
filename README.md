@@ -12,7 +12,7 @@ Python solutions - just for fun and to learn some of the newer py3 syntax.
  - Day 5 - python. Part 1 only
  - Day 6 - python
  - Day 7 - python
- - Day 8 - python. Part 1 only
+ - Day 8 - python
  - Day 9 - python
  - Day 13 - python
 
