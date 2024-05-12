@@ -6,7 +6,7 @@ https://adventofcode.com/2023
 
 --
 
-Some of the problems have been completed in python, others in Java. I may even attempt Kotlin at some point.
+Some of the problems have been completed in python, others in Java.
 
 The solutions were implemented for fun and to brush up on py3 features or refresh my Java knowledge. 
 
